@@ -167,7 +167,6 @@ public abstract class RenderedImageMapResponse extends AbstractMapResponse {
                 // try to force a RGBA setup
                 image =
                         new ImageWorker(image)
-                                .rescaleToBytes()
                                 .forceComponentColorModel()
                                 .getRenderedImage();
                 ColorIndexer indexer = null;
