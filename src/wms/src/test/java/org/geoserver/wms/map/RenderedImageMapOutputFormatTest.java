@@ -949,11 +949,11 @@ public class RenderedImageMapOutputFormatTest extends WMSTestSupport {
         assertNotBlank("testInterpolationsBicubic", imageBicubic);
         // test some sample pixels to check rendering is different using different interpolations
         assertNotEquals(
-                getPixelColor(imageNearest, 160, 160).getRGB(),
-                getPixelColor(imageBicubic, 160, 160).getRGB());
+                getPixelColor(imageNearest, 150, 150).getRGB(),
+                getPixelColor(imageBicubic, 150, 150).getRGB());
         assertNotEquals(
-                getPixelColor(imageNearest, 300, 450).getRGB(),
-                getPixelColor(imageBicubic, 300, 450).getRGB());
+                getPixelColor(imageNearest, 300, 390).getRGB(),
+                getPixelColor(imageBicubic, 300, 390).getRGB());
     }
 
     @Test
@@ -1018,11 +1018,11 @@ public class RenderedImageMapOutputFormatTest extends WMSTestSupport {
         assertNotBlank("testInterpolationsBicubic", imageBicubic);
         // test some sample pixels to check rendering is different using different interpolations
         assertNotEquals(
-                getPixelColor(imageNearest, 160, 160).getRGB(),
-                getPixelColor(imageBicubic, 160, 160).getRGB());
+                getPixelColor(imageNearest, 150, 150).getRGB(),
+                getPixelColor(imageBicubic, 150, 150).getRGB());
         assertNotEquals(
-                getPixelColor(imageNearest, 300, 450).getRGB(),
-                getPixelColor(imageBicubic, 300, 450).getRGB());
+                getPixelColor(imageNearest, 300, 390).getRGB(),
+                getPixelColor(imageBicubic, 300, 390).getRGB());
 
         // check also the *non* direct raster render path
         request = new GetMapRequest();
