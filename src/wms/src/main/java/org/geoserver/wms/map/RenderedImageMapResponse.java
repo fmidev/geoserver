@@ -155,10 +155,10 @@ public abstract class RenderedImageMapResponse extends AbstractMapResponse {
             if (!(image.getColorModel() instanceof IndexColorModel)
                     && (mapContent.getPalette() != null || palettedFormatCheck.apply(format))) {
                 // try to force a RGBA setup
-                image = new ImageWorker(image)
-                        .rescaleToBytes()
-                        .forceComponentColorModel()
-                        .getRenderedImage();
+                // no rescale to bytes here: it would destroy USHORT precision before the
+                // palette is built; the Quantizer/color indexer below reduces the value
+                // range on its own
+                image = new ImageWorker(image).forceComponentColorModel().getRenderedImage();
                 ColorIndexer indexer = null;
 
                 // user provided palette?
