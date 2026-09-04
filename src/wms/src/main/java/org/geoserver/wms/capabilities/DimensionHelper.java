@@ -70,32 +70,25 @@ public abstract class DimensionHelper {
         }
 
         public TreeSet<Object> getDomain() throws IOException {
-            TreeSet<Object> elevations = null;
-            try {
-                if (elevationInfo.getPresentation() != DimensionPresentation.LIST) {
-                    String startValue = elevationInfo.getStartValue();
-                    String endValue = elevationInfo.getEndValue();
-                    if (!StringUtils.isEmpty(startValue) && !StringUtils.isEmpty(endValue)) {
-                        elevations = new TreeSet<>();
-                        elevations.add(Double.parseDouble(startValue));
-                        elevations.add(Double.parseDouble(endValue));
-                    } else {
-                        Double minValue = accessor.getMinElevation();
-                        if (minValue != null) {
-                            elevations = new TreeSet<>();
-                            elevations.add(minValue);
-                            elevations.add(accessor.getMaxElevation());
-                        }
-                    }
+            // LIST presentation is the only case where the full domain listing is wanted
+            if (elevationInfo.getPresentation() == DimensionPresentation.LIST) {
+                return accessor.getElevationDomain();
+            }
+
+            // any other presentation (CONTINUOUS_INTERVAL/DISCRETE_INTERVAL) only needs min/max,
+            // never fall back to the full domain: that would defeat the point of choosing it
+            TreeSet<Object> elevations = new TreeSet<>();
+            String startValue = elevationInfo.getStartValue();
+            String endValue = elevationInfo.getEndValue();
+            if (!StringUtils.isEmpty(startValue) && !StringUtils.isEmpty(endValue)) {
+                elevations.add(Double.parseDouble(startValue));
+                elevations.add(Double.parseDouble(endValue));
+            } else {
+                Double minValue = accessor.getMinElevation();
+                if (minValue != null) {
+                    elevations.add(minValue);
+                    elevations.add(accessor.getMaxElevation());
                 }
-                if (elevations == null) {
-                    throw new Exception("The \"List\" presentation of the elevation dimension has been selected");
-                }
-            } catch (Exception ex) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "Dimension has not been extracted. The reason: ", ex);
-                }
-                elevations = accessor.getElevationDomain();
             }
             return elevations;
         }
@@ -116,33 +109,25 @@ public abstract class DimensionHelper {
         }
 
         public TreeSet<Object> getDomain() throws IOException {
-            TreeSet<Object> temporalDomain = null;
+            // LIST presentation is the only case where the full domain listing is wanted
+            if (timeInfo.getPresentation() == DimensionPresentation.LIST) {
+                return accessor.getTimeDomain();
+            }
 
-            try {
-                if (timeInfo.getPresentation() != DimensionPresentation.LIST) {
-                    String startValue = timeInfo.getStartValue();
-                    String endValue = timeInfo.getEndValue();
-                    if (startValue != null && endValue != null) {
-                        temporalDomain = new TreeSet<>();
-                        temporalDomain.add(parseTimeRangeValue(startValue));
-                        temporalDomain.add(parseTimeRangeValue(endValue));
-                    } else {
-                        Date minValue = accessor.getMinTime();
-                        if (minValue != null) {
-                            temporalDomain = new TreeSet<>();
-                            temporalDomain.add(minValue);
-                            temporalDomain.add(accessor.getMaxTime());
-                        }
-                    }
+            // any other presentation (CONTINUOUS_INTERVAL/DISCRETE_INTERVAL) only needs min/max,
+            // never fall back to the full domain: that would defeat the point of choosing it
+            TreeSet<Object> temporalDomain = new TreeSet<>();
+            String startValue = timeInfo.getStartValue();
+            String endValue = timeInfo.getEndValue();
+            if (startValue != null && endValue != null) {
+                temporalDomain.add(parseTimeRangeValue(startValue));
+                temporalDomain.add(parseTimeRangeValue(endValue));
+            } else {
+                Date minValue = accessor.getMinTime();
+                if (minValue != null) {
+                    temporalDomain.add(minValue);
+                    temporalDomain.add(accessor.getMaxTime());
                 }
-                if (temporalDomain == null) {
-                    throw new Exception("The \"List\" presentation of the temporal dimension has been selected");
-                }
-            } catch (Exception ex) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "Dimension has not been extracted. The reason: ", ex);
-                }
-                temporalDomain = accessor.getTimeDomain();
             }
             return temporalDomain;
         }
@@ -510,6 +495,9 @@ public abstract class DimensionHelper {
                     .replaceAll("\\]", "")
                     .replaceAll(" ", "");
         } else if (DimensionPresentation.CONTINUOUS_INTERVAL == dimension.getPresentation()) {
+            if (values.isEmpty()) {
+                return null;
+            }
             NumberRange range = getMinMaxZInterval(values);
             buff.append(range.getMinimum());
             buff.append("/");
@@ -518,6 +506,9 @@ public abstract class DimensionHelper {
 
             elevationMetadata = buff.toString();
         } else if (DimensionPresentation.DISCRETE_INTERVAL == dimension.getPresentation()) {
+            if (values.isEmpty()) {
+                return null;
+            }
             final NumberRange range = getMinMaxZInterval(values);
             final Class<?> typeBinding = values.first().getClass();
             final boolean isDecimal = isDecimal(typeBinding);
@@ -584,6 +575,9 @@ public abstract class DimensionHelper {
                     .replaceAll("\\]", "")
                     .replaceAll(" ", "");
         } else if (DimensionPresentation.CONTINUOUS_INTERVAL == timeInfo.getPresentation()) {
+            if (values.isEmpty()) {
+                return null;
+            }
             DateRange interval = getMinMaxTimeInterval(values);
             buff.append(df.format(interval.getMinValue()));
             buff.append("/");
@@ -591,6 +585,9 @@ public abstract class DimensionHelper {
             buff.append("/PT1S");
             timeMetadata = buff.toString();
         } else if (DimensionPresentation.DISCRETE_INTERVAL == timeInfo.getPresentation()) {
+            if (values.isEmpty()) {
+                return null;
+            }
             DateRange interval = getMinMaxTimeInterval(values);
             buff.append(df.format(interval.getMinValue()));
             buff.append("/");
