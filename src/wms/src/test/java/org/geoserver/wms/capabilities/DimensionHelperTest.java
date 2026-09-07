@@ -79,6 +79,28 @@ public class DimensionHelperTest {
     }
 
     @Test
+    public void testGetCustomDomainRepresentationSingleValue() {
+        // e.g. FILTER/GEOCONF custom dimensions as configured for the Radar workspace layers,
+        // which only ever have a single value in their domain (a fixed "qc"/"finradfast" etc.)
+        final List<String> values = new ArrayList<>();
+        values.add("qc");
+        DimensionInfo dimensionInfo = new DimensionInfoImpl();
+        dimensionInfo.setPresentation(DimensionPresentation.LIST);
+        String customDimRepr = dimensionHelper.getCustomDomainRepresentation(dimensionInfo, values);
+        assertEquals("qc", customDimRepr);
+    }
+
+    @Test
+    public void testGetCustomDomainRepresentationEmptyDomain() {
+        // simulates the reader/store finding no values at all for this dimension
+        final List<String> values = new ArrayList<>();
+        DimensionInfo dimensionInfo = new DimensionInfoImpl();
+        dimensionInfo.setPresentation(DimensionPresentation.LIST);
+        String customDimRepr = dimensionHelper.getCustomDomainRepresentation(dimensionInfo, values);
+        assertEquals(null, customDimRepr);
+    }
+
+    @Test
     public void testNegativeYears() {
         ISO8601Formatter fmt = new ISO8601Formatter();
 
@@ -188,6 +210,27 @@ public class DimensionHelperTest {
 
         assertTrue(domain.isEmpty());
         verify(accessor, never()).getTimeDomain();
+    }
+
+    @Test
+    public void testTemporalDomainDiscreteIntervalWithBlankStartEndFallsBackToMinMax() throws Exception {
+        // startValue/endValue left blank in the admin UI are stored as "", not null - this must
+        // not be treated as "explicit range given" (which would try to parse "" as a date and
+        // throw, silently dropping the whole layer from the capabilities document)
+        ReaderDimensionsAccessor accessor = mock(ReaderDimensionsAccessor.class);
+        Date min = new Date(0);
+        Date max = new Date(2000);
+        when(accessor.getMinTime()).thenReturn(min);
+        when(accessor.getMaxTime()).thenReturn(max);
+
+        DimensionInfo timeInfo = new DimensionInfoImpl();
+        timeInfo.setPresentation(DimensionPresentation.DISCRETE_INTERVAL);
+        timeInfo.setStartValue("");
+        timeInfo.setEndValue("");
+
+        TreeSet<Object> domain = new TemporalDimensionRasterHelper(timeInfo, accessor).getDomain();
+
+        assertEquals(new TreeSet<>(List.of(min, max)), domain);
     }
 
     @Test
