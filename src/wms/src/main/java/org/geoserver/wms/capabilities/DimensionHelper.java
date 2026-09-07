@@ -119,7 +119,12 @@ public abstract class DimensionHelper {
             TreeSet<Object> temporalDomain = new TreeSet<>();
             String startValue = timeInfo.getStartValue();
             String endValue = timeInfo.getEndValue();
-            if (startValue != null && endValue != null) {
+            // an explicitly-empty (but non-null) start/end, e.g. left blank in the admin UI,
+            // must fall through to the min/max lookup below just like a genuinely unset value -
+            // parseTimeRangeValue("") would otherwise throw and silently drop this whole layer
+            // from the capabilities document (see ElevationDimensionRasterHelper.getDomain()
+            // above, which already handles this correctly with StringUtils.isEmpty()).
+            if (!StringUtils.isEmpty(startValue) && !StringUtils.isEmpty(endValue)) {
                 temporalDomain.add(parseTimeRangeValue(startValue));
                 temporalDomain.add(parseTimeRangeValue(endValue));
             } else {
@@ -682,6 +687,14 @@ public abstract class DimensionHelper {
 
     /** Builds the proper presentation given the specified value domain */
     String getCustomDomainRepresentation(DimensionInfo dimension, List<String> values) {
+        // an empty domain (e.g. the reader found no values at all for this dimension) must not
+        // reach the substring()/get(0) calls below, both of which throw on an empty list -
+        // same failure mode as the temporal/elevation domains: an uncaught exception here
+        // silently drops the whole layer from the capabilities document.
+        if (values.isEmpty()) {
+            return null;
+        }
+
         String metadata = null;
 
         final StringBuilder buff = new StringBuilder();
