@@ -6,6 +6,7 @@
 package org.geoserver.wms.map;
 
 import java.awt.Transparency;
+import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
 import java.awt.image.RenderedImage;
 import java.io.IOException;
@@ -155,10 +156,17 @@ public abstract class RenderedImageMapResponse extends AbstractMapResponse {
             if (!(image.getColorModel() instanceof IndexColorModel)
                     && (mapContent.getPalette() != null || palettedFormatCheck.apply(format))) {
                 // try to force a RGBA setup
-                // no rescale to bytes here: it would destroy USHORT precision before the
-                // palette is built; the Quantizer/color indexer below reduces the value
-                // range on its own
-                image = new ImageWorker(image).forceComponentColorModel().getRenderedImage();
+                ImageWorker worker = new ImageWorker(image);
+                // skip the rescale only for images that are already 16 bit: rescaling would
+                // destroy USHORT/SHORT precision before the palette is built (the
+                // Quantizer/color indexer below reduces the value range on its own). 8 bit
+                // source images still need the rescale, since the color indexing code below
+                // assumes a byte DataBuffer and otherwise fails with a ClassCastException.
+                int dataType = image.getSampleModel().getDataType();
+                if (dataType != DataBuffer.TYPE_USHORT && dataType != DataBuffer.TYPE_SHORT) {
+                    worker.rescaleToBytes();
+                }
+                image = worker.forceComponentColorModel().getRenderedImage();
                 ColorIndexer indexer = null;
 
                 // user provided palette?
